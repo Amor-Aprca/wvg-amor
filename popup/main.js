@@ -4,6 +4,9 @@ let pageURL=chrome.extension.getBackgroundPage().pageURL;
 let targetIds=chrome.extension.getBackgroundPage().targetIds;
 let clearkey=chrome.extension.getBackgroundPage().clearkey;
 
+let mpdUrl = '';
+let savedName = '';
+
 async function guess(){
     //Be patient!
     document.body.style.cursor = "wait";
@@ -85,3 +88,53 @@ if (clearkey) {
     document.getElementById('result').addEventListener("click", copyResult);
     autoSelect();
 }
+
+// Event listener for saving Name
+document.getElementById('saveNameButton').addEventListener('click', function() {
+    savedName = document.getElementById('saveName').value;
+    console.log('Saved name:', savedName);
+});
+
+// Function to parse the result and generate the keyCommand
+function generateKeyCommand() {
+    const result = document.getElementById('result').value.trim(); // Get the decrypted keys from result
+    const keys = result.split("\n"); // Split the keys by newline (assuming each key is in a new line)
+    
+    const A = "--key"; // Prefix for the key command
+    let keyCommand = "";
+
+    // Loop through each key and construct the keyCommand
+    keys.forEach((key, index) => {
+        if (index > 0) {
+            keyCommand += " "; // Add a space between multiple keys
+        }
+        keyCommand += `${A} ${key}`; // Construct the key command
+    });
+
+    return keyCommand;
+}
+
+// Event listener for generating and displaying the RE command
+document.getElementById('ceREButton').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent the page from refreshing
+
+    const keyCommand = generateKeyCommand(); // Get the keyCommand from the result
+    const reCommand = `"${mpdUrl}" ${keyCommand} --save-name "${savedName}" --use-shaka-packager -mt -M format=mkv --auto-select`;
+
+    // Display the RE command in the textarea
+    const reCommandDisplay = document.getElementById('reCommandDisplay');
+    reCommandDisplay.value = reCommand; // Set the RE command in the textarea
+    console.log('Generated RE Command:', reCommand);
+});
+
+// Event listener for copying the displayed RE command
+document.getElementById('copyREButton').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent any unwanted behavior
+    const reCommand = document.getElementById('reCommandDisplay').value;
+    navigator.clipboard.writeText(reCommand).then(() => {
+        alert('RE命令已复制');
+    }).catch(err => {
+        console.error('复制失败:', err);
+    });
+});
+
